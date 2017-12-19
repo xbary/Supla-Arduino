@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding ="utf-8" ?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+  <PropertyGroup Label="Globals" >
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{482bb223-0c98-4432-9aa2-f5b28e431d9d}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)lck.c" />
+<ClCompile Include="$(MSBuildThisFileDirectory)log.cpp" />
+<ClCompile Include="$(MSBuildThisFileDirectory)proto.c" />
+<ClCompile Include="$(MSBuildThisFileDirectory)srpc.c" />
+<ClCompile Include="$(MSBuildThisFileDirectory)SuplaDevice.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)eh.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)IEEE754tools.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)lck.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)log.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)proto.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)srpc.h" />
+<ClInclude Include="$(MSBuildThisFileDirectory)SuplaDevice.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="$(MSBuildThisFileDirectory)library.properties" />
+<Text Include="$(MSBuildThisFileDirectory)vs-readme.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)supla_main_helper._cpp_" />
+  </ItemGroup>
+</Project>

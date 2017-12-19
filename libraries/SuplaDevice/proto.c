@@ -31,7 +31,7 @@
 	#define BUFFER_MAX_SIZE    2048
 
 	#include <user_interface.h>
-	#include "espmissingincludes.h"
+//	#include "espmissingincludes.h"
 
 #elif defined(__AVR__)
 
@@ -374,6 +374,7 @@ char sproto_set_data(TSuplaDataPacket *sdp, char *data, unsigned _supla_int_t da
 
 	if ( data_size >  SUPLA_MAX_DATA_SIZE )
 		return SUPLA_RESULT_FALSE;
+
 
 	if ( data_size > 0 )
 	  memcpy(sdp->data, data, data_size);

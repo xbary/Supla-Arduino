@@ -100,7 +100,7 @@ void supla_arduino_on_remote_call_received(void *_srpc, unsigned _supla_int_t rr
 
 	} else if ( result == SUPLA_RESULT_DATA_ERROR ) {
 
-        supla_log(LOG_DEBUG, "DATA ERROR!");
+        supla_log(LOG_DEBUG, FSS("DATA ERROR!"));
 	}
 	
 }
@@ -111,6 +111,7 @@ SuplaDeviceClass::SuplaDeviceClass() {
 	char a;
 	srpc = NULL;
 	registered = 0;
+	serverconnectedcount = 0; // add xbary
 	last_iterate_time = 0;
     wait_for_iterate = 0;
 	channel_pin = NULL;
@@ -118,6 +119,8 @@ SuplaDeviceClass::SuplaDeviceClass() {
 	
 	impl_arduino_digitalRead = NULL;
 	impl_arduino_digitalWrite = NULL;
+	impl_arduino_pinMode = NULL; // add xbary
+	impl_arduino_status = NULL; // add xbary
 	
 	memset(&Params, 0, sizeof(SuplaDeviceParams));
 	
@@ -140,22 +143,49 @@ SuplaDeviceClass::~SuplaDeviceClass() {
 	
 }
 
-int SuplaDeviceClass::suplaDigitalRead(int channelNumber, uint8_t pin) {
+int SuplaDeviceClass::suplaDigitalRead(int channelNumber, uint8_t pin) 
+{
+	int rez;
 	
-	if ( impl_arduino_digitalRead != NULL )
-		return impl_arduino_digitalRead(channelNumber, pin);
-	
-	return digitalRead(pin);
+	if (impl_arduino_digitalRead != NULL)
+	{
+		rez=impl_arduino_digitalRead(channelNumber, pin);
+	}
+	else
+	{
+		rez = digitalRead(pin);
+	}
+	return rez;
 }
 
-void SuplaDeviceClass::suplaDigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
+void SuplaDeviceClass::suplaDigitalWrite(int channelNumber, uint8_t pin, uint8_t val)
+{
 	
-	if ( impl_arduino_digitalWrite != NULL )
-		 impl_arduino_digitalWrite(channelNumber, pin, val);
-	
-	digitalWrite(pin, val);
-	
+	if (impl_arduino_digitalWrite != NULL)
+	{
+		impl_arduino_digitalWrite(channelNumber, pin, val);
+	}
+	else
+	{
+		digitalWrite(pin, val);
+	}
 }
+
+// add xbary
+void SuplaDeviceClass::suplapinMode(int channelNumber, uint8_t pin, uint8_t mode) 
+{
+
+	if (impl_arduino_pinMode != NULL)
+	{
+		impl_arduino_pinMode(channelNumber, pin, mode);
+	}
+	else
+	{
+		pinMode(pin, mode);
+	}
+}
+
+
 
 void SuplaDeviceClass::setDigitalReadFuncImpl(_impl_arduino_digitalRead impl_arduino_digitalRead) {
 	
@@ -169,6 +199,13 @@ void SuplaDeviceClass::setDigitalWriteFuncImpl(_impl_arduino_digitalWrite impl_a
 	
 }
 
+// add xbary
+void SuplaDeviceClass::setpinModeFuncImpl(_impl_arduino_pinMode impl_arduino_pinMode) {
+
+	this->impl_arduino_pinMode = impl_arduino_pinMode;
+
+}
+
 void SuplaDeviceClass::setStatusFuncImpl(_impl_arduino_status impl_arduino_status) {
     
     this->impl_arduino_status = impl_arduino_status;
@@ -178,7 +215,7 @@ bool SuplaDeviceClass::isInitialized(bool msg) {
 	if ( srpc != NULL ) {
 		
 		if ( msg )
-            status(STATUS_ALREADY_INITIALIZED, "SuplaDevice is already initialized");
+            status(STATUS_ALREADY_INITIALIZED, FSS("\nSuplaDevice is already initialized"));
 		
 		return true;
 	}
@@ -189,7 +226,7 @@ bool SuplaDeviceClass::isInitialized(bool msg) {
 bool SuplaDeviceClass::chceckEepromSize() {
     
     if ( sizeof(SuplaDevicePrefs) > EEPROM.length()-eeprom_address ) {
-        supla_log(LOG_ERR, "EEPROM size too small!");
+        supla_log(LOG_ERR, FSS("\nEEPROM size too small!\n"));
         return false;
     };
     
@@ -209,7 +246,7 @@ bool SuplaDeviceClass::prefsWrite(void) {
         EEPROM.write(eeprom_address+a, ((byte*)&prefs)[a]);
     }
     
-    supla_log(LOG_DEBUG, "Preferences initialized");
+    supla_log(LOG_DEBUG, FSS("Preferences initialized"));
 }
 
 bool SuplaDeviceClass::prefsRead(bool init) {
@@ -226,7 +263,7 @@ bool SuplaDeviceClass::prefsRead(bool init) {
     }
     
     if ( memcmp(prefs.tag, tag, 6) == 0 ) {
-        supla_log(LOG_DEBUG, "Preferences loaded");
+        supla_log(LOG_DEBUG, FSS("Preferences loaded"));
         return true;
     } else {
         if ( init ) {
@@ -234,7 +271,7 @@ bool SuplaDeviceClass::prefsRead(bool init) {
             memcpy(prefs.tag, tag, 6);
             return prefsWrite();
         } else {
-            supla_log(LOG_DEBUG, "state.tag error!");
+            supla_log(LOG_DEBUG, FSS("state.tag error!"));
         }
     }
 
@@ -255,7 +292,7 @@ bool SuplaDeviceClass::begin(IPAddress *local_ip, char GUID[SUPLA_GUID_SIZE], ui
 	     || Params.cb.svr_connect == NULL
 	     || Params.cb.svr_disconnect == NULL ) {
 		
-        status(STATUS_CB_NOT_ASSIGNED, "Callbacks not assigned!");
+        status(STATUS_CB_NOT_ASSIGNED, FSS("\nCallbacks not assigned!"));
 		return false;
 	}
 	
@@ -276,18 +313,20 @@ bool SuplaDeviceClass::begin(IPAddress *local_ip, char GUID[SUPLA_GUID_SIZE], ui
 		if ( Params.reg_dev.GUID[a] != 0 ) break;
 	
 	if ( a == SUPLA_GUID_SIZE ) {
-		status(STATUS_INVALID_GUID, "Invalid GUID");
+		status(STATUS_INVALID_GUID, FSS("\nInvalid GUID"));
+
 		return false;
 	}
 	
+
 	if ( Params.server == NULL 
 			|| Params.server[0] == NULL ) {
-		status(STATUS_UNKNOWN_SERVER_ADDRESS, "Unknown server address");
+		status(STATUS_UNKNOWN_SERVER_ADDRESS, FSS("\nUnknown server address"));
 		return false;
 	}
-	
+
 	if ( Params.reg_dev.LocationID == 0 ) {
-		status(STATUS_UNKNOWN_LOCATION_ID, "Unknown LocationID");
+		status(STATUS_UNKNOWN_LOCATION_ID, FSS("\nUnknown LocationID"));
 		return false;
 	}
 	
@@ -308,9 +347,14 @@ bool SuplaDeviceClass::begin(IPAddress *local_ip, char GUID[SUPLA_GUID_SIZE], ui
 	
 
 	srpc = srpc_init(&srpc_params);
-	status(STATUS_INITIALIZED, "SuplaDevice initialized");
+	if (srpc == NULL)
+	{
+		return false;
+	}
+	//status(STATUS_INITIALIZED, FSS("SuplaDevice initialized"));
     
-    prefsRead(true);
+	prefsRead(true);
+	return true;
 }
 
 bool SuplaDeviceClass::begin(char GUID[SUPLA_GUID_SIZE], uint8_t mac[6], const char *Server,
@@ -321,18 +365,19 @@ bool SuplaDeviceClass::begin(char GUID[SUPLA_GUID_SIZE], uint8_t mac[6], const c
 
 void SuplaDeviceClass::setName(const char *Name) {
 	
-	if ( isInitialized(true) ) return;
+	//if ( isInitialized(false) ) return; // sunriver remove
 	setString(Params.reg_dev.Name, Name, SUPLA_DEVICE_NAME_MAXSIZE);
 }
 
 int SuplaDeviceClass::addChannel(int pin1, int pin2, bool hiIsLo, bool bistable) {
+
 	if ( isInitialized(true) ) return -1;
 	
+
 	if ( Params.reg_dev.channel_count >= SUPLA_CHANNELMAXCOUNT ) {
-		status(STATUS_CHANNEL_LIMIT_EXCEEDED, "Channel limit exceeded");
+		status(STATUS_CHANNEL_LIMIT_EXCEEDED, FSS("Channel limit exceeded"));
 		return -1;
 	}
-
     
 	if ( bistable && ( pin1 == 0 || pin2 == 0 ) )
 		bistable = false;
@@ -365,7 +410,7 @@ bool SuplaDeviceClass::addRelay(int relayPin1, int relayPin2, bool hiIsLo, bool 
 	Params.reg_dev.channels[c].FuncList = functions;
 	
 	if ( relayPin1 != 0 ) {
-		pinMode(relayPin1, OUTPUT); 
+		suplapinMode(Params.reg_dev.channels[c].Number, relayPin1, OUTPUT); // change xbary
 		suplaDigitalWrite(Params.reg_dev.channels[c].Number, relayPin1, hiIsLo ? HIGH : LOW); 
 		
 		if ( bistable == false )
@@ -375,11 +420,11 @@ bool SuplaDeviceClass::addRelay(int relayPin1, int relayPin2, bool hiIsLo, bool 
 	if ( relayPin2 != 0 )
 	  if ( bistable ) {
 		  
-		  pinMode(relayPin2, INPUT); 
+                  suplapinMode(Params.reg_dev.channels[c].Number, relayPin2, INPUT); // change xbary
 		  Params.reg_dev.channels[c].value[0] = suplaDigitalRead(Params.reg_dev.channels[c].Number, relayPin2) == HIGH ? 1 : 0;
 		  
 	  } else {
-		  pinMode(relayPin2, OUTPUT); 
+		  suplapinMode(Params.reg_dev.channels[c].Number, relayPin2, OUTPUT); // change xbary
 		  suplaDigitalWrite(Params.reg_dev.channels[c].Number, relayPin2, hiIsLo ? HIGH : LOW); 
 			
 		  if ( Params.reg_dev.channels[c].value[0] == 0
@@ -418,7 +463,7 @@ bool SuplaDeviceClass::addSensorNO(int sensorPin, bool pullUp) {
 	if ( c == -1 ) return false; 
 	
 	Params.reg_dev.channels[c].Type = SUPLA_CHANNELTYPE_SENSORNO;
-	pinMode(sensorPin, INPUT); 
+	suplapinMode(Params.reg_dev.channels[c].Number, sensorPin, INPUT); // change xbary
 	suplaDigitalWrite(Params.reg_dev.channels[c].Number, sensorPin, pullUp ? HIGH : LOW);
 	
 	Params.reg_dev.channels[c].value[0] = suplaDigitalRead(Params.reg_dev.channels[c].Number, sensorPin) == HIGH ? 1 : 0;
@@ -587,35 +632,47 @@ void SuplaDeviceClass::setDistanceCallback(_cb_arduino_get_distance get_distance
     Params.cb.get_distance = get_distance;
 }
 
-void SuplaDeviceClass::iterate(void) {
-	
+bool SuplaDeviceClass::iterate(void) {
+
     if ( wait_for_iterate != 0
          && millis() < wait_for_iterate ) {
-        return;
+        return true;
         
     } else {
         wait_for_iterate = 0;
     }
     
-	if ( !isInitialized(false) ) return;
+	if ( !isInitialized(false) ) return false;
 	
 	if ( !Params.cb.svr_connected() ) {
-		
-		status(STATUS_DISCONNECTED, "Not connected");
+
+		// add xbary
+		if (serverconnectedcount == 0 ) 
+		{
+			status(STATUS_DISCONNECTED, FSS("\nSupla not connected.\n"));
+			serverconnectedcount++;
+			return false;
+		}
 	    registered = 0;
 	    last_response = 0;
 	    ping_flag = false;
 	    
 		if ( !Params.cb.svr_connect(Params.server, 2015) ) {
 			
-		    	supla_log(LOG_DEBUG, "Connection fail. Server: %s", Params.server);
+		    	supla_log(LOG_DEBUG, FSS("\nSupla connection fail. Server: %s\n"), Params.server);
 		    	Params.cb.svr_disconnect();
 
                 wait_for_iterate = millis() + 2000;
-				return;
+				return false;
 		}
 	}
-	
+	// add xbary
+	else
+	{
+		serverconnectedcount = 0;
+	}
+
+
 	unsigned long _millis = millis();
 
 	
@@ -623,14 +680,14 @@ void SuplaDeviceClass::iterate(void) {
 		
 		registered = -1;
 		srpc_ds_async_registerdevice_b(srpc, &Params.reg_dev);
-		status(STATUS_REGISTER_IN_PROGRESS, "Register in progress");
-		
+		status(STATUS_REGISTER_IN_PROGRESS, FSS("Supla register.."));
 	} else if ( registered == 1 ) {
 		// PING
 		if ( (_millis-last_response)/1000 >= (server_activity_timeout+10)  ) {
-			
-			supla_log(LOG_DEBUG, "TIMEOUT");
+
+			supla_log(LOG_DEBUG, FSS("\nSupla timeout.\n"));
 			Params.cb.svr_disconnect();
+			return false; //add xbary
 
 		} else if ( ping_flag == false 
 				    && (_millis-last_response)/1000 >= (server_activity_timeout-5) ) {
@@ -643,8 +700,10 @@ void SuplaDeviceClass::iterate(void) {
 		
 		unsigned long td = abs(_millis - last_iterate_time);
 		
-		for(int a=0;a<Params.reg_dev.channel_count;a++) {
-			
+		// add xbary
+		if (IterateChannelIndex<Params.reg_dev.channel_count) 		//for(int a=0;a<Params.reg_dev.channel_count;a++)
+		{
+			uint8_t	a = IterateChannelIndex;
 			if ( channel_pin[a].bi_time_left != 0 ) {
 				if ( td >= channel_pin[a].bi_time_left ) {
 										
@@ -711,7 +770,7 @@ void SuplaDeviceClass::iterate(void) {
 				
 				if ( channel_pin[a].time_left <= 0 ) {
 				
-					channel_pin[a].time_left = 10000;
+					channel_pin[a].time_left = 1000; // change xbary
 					double val = Params.cb.get_temperature(a, channel_pin[a].last_val_dbl1);
 					
 					if ( val != channel_pin[a].last_val_dbl1 ) {
@@ -731,7 +790,7 @@ void SuplaDeviceClass::iterate(void) {
 				
 				if ( channel_pin[a].time_left <= 0 ) {
 				
-					channel_pin[a].time_left = 10000;
+					channel_pin[a].time_left = 1000; // change xbary
 					
 					double t = channel_pin[a].last_val_dbl1;
 					double h = channel_pin[a].last_val_dbl2;
@@ -774,8 +833,12 @@ void SuplaDeviceClass::iterate(void) {
                 }
                 
             }
-            
- 			
+            		// add xbary
+			IterateChannelIndex++;
+		}
+		else
+		{
+			IterateChannelIndex = 0;
 		}
 
 	}
@@ -784,14 +847,14 @@ void SuplaDeviceClass::iterate(void) {
 	last_iterate_time = millis();
 	
 	if( srpc_iterate(srpc) == SUPLA_RESULT_FALSE ) {
-		status(STATUS_ITERATE_FAIL, "Iterate fail");
+		status(STATUS_ITERATE_FAIL, FSS("Iterate fail"));
 		Params.cb.svr_disconnect();
         
 		wait_for_iterate = millis() + 5000;
-        return;
+        return false; // change xbary
 	}
 	
-	
+	return true; // add xbary
 }
 
 void SuplaDeviceClass::onResponse(void) {
@@ -800,36 +863,36 @@ void SuplaDeviceClass::onResponse(void) {
 }
 
 void SuplaDeviceClass::onVersionError(TSDC_SuplaVersionError *version_error) {
-	status(STATUS_PROTOCOL_VERSION_ERROR, "Protocol version error");
+	status(STATUS_PROTOCOL_VERSION_ERROR, FSS("Protocol version error"));
 	Params.cb.svr_disconnect();
-    
-    wait_for_iterate = millis()+5000;
+	delay(0);//delay(5000)
 }
 
 void SuplaDeviceClass::onRegisterResult(TSD_SuplaRegisterDeviceResult *register_device_result) {
 
 	switch(register_device_result->result_code) {
         case SUPLA_RESULTCODE_BAD_CREDENTIALS:
-            status(STATUS_BAD_CREDENTIALS, "Bad credentials!");
+            status(STATUS_BAD_CREDENTIALS, FSS("Bad credentials!"));
             break;
             
         case SUPLA_RESULTCODE_TEMPORARILY_UNAVAILABLE:
-            status(STATUS_TEMPORARILY_UNAVAILABLE, "Temporarily unavailable!");
+            status(STATUS_TEMPORARILY_UNAVAILABLE, FSS("Temporarily unavailable!"));
             break;
             
         case SUPLA_RESULTCODE_LOCATION_CONFLICT:
-            status(STATUS_LOCATION_CONFLICT, "Location conflict!");
+            status(STATUS_LOCATION_CONFLICT, FSS("Location conflict!"));
             break;
             
         case SUPLA_RESULTCODE_CHANNEL_CONFLICT:
-            status(STATUS_CHANNEL_CONFLICT, "Channel conflict!");
+            status(STATUS_CHANNEL_CONFLICT, FSS("Channel conflict!"));
             break;
         case SUPLA_RESULTCODE_TRUE:
             
             server_activity_timeout = register_device_result->activity_timeout;
             registered = 1;
             
-            status(STATUS_REGISTERED_AND_READY, "Registered and ready.");
+            //status(STATUS_REGISTERED_AND_READY, "Registered and ready.");
+			status(STATUS_REGISTERED_AND_READY, FSS(".OK\n"));
             
             if ( server_activity_timeout != ACTIVITY_TIMEOUT ) {
                 
@@ -842,39 +905,39 @@ void SuplaDeviceClass::onRegisterResult(TSD_SuplaRegisterDeviceResult *register_
             return;
             
         case SUPLA_RESULTCODE_DEVICE_DISABLED:
-            status(STATUS_DEVICE_IS_DISABLED, "Device is disabled!");
+            status(STATUS_DEVICE_IS_DISABLED, FSS("Device is disabled!"));
             break;
             
         case SUPLA_RESULTCODE_LOCATION_DISABLED:
-            status(STATUS_LOCATION_IS_DISABLED, "Location is disabled!");
+            status(STATUS_LOCATION_IS_DISABLED, FSS("Location is disabled!"));
             break;
             
         case SUPLA_RESULTCODE_DEVICE_LIMITEXCEEDED:
-            status(STATUS_DEVICE_LIMIT_EXCEEDED, "Device limit exceeded!");
+            status(STATUS_DEVICE_LIMIT_EXCEEDED, FSS("Device limit exceeded!"));
             break;
             
         case SUPLA_RESULTCODE_GUID_ERROR:
-            status(STATUS_INVALID_GUID, "Incorrect device GUID!");
+            status(STATUS_INVALID_GUID, FSS("Incorrect device GUID!"));
             break;
             
         case SUPLA_RESULTCODE_AUTHKEY_ERROR:
-            status(STATUS_INVALID_GUID, "Incorrect AuthKey!");
+            status(STATUS_INVALID_GUID, FSS("Incorrect AuthKey!"));
             break;
             
         case SUPLA_RESULTCODE_REGISTRATION_DISABLED:
-            status(STATUS_INVALID_GUID, "Registration disabled!");
+            status(STATUS_INVALID_GUID, FSS("Registration disabled!"));
             break;
             
         case SUPLA_RESULTCODE_NO_LOCATION_AVAILABLE:
-            status(STATUS_INVALID_GUID, "No location available!");
+            status(STATUS_INVALID_GUID, FSS("No location available!"));
             break;
             
         case SUPLA_RESULTCODE_USER_CONFLICT:
-            status(STATUS_INVALID_GUID, "User conflict!");
+            status(STATUS_INVALID_GUID, FSS("User conflict!"));
             break;
             
         default:
-            supla_log(LOG_ERR, "Register result code %i", register_device_result->result_code);
+            supla_log(LOG_ERR, FSS("Register result code %i"), register_device_result->result_code);
             break;
 	}
 
@@ -952,7 +1015,7 @@ void SuplaDeviceClass::channelSetValue(int channel, char value, _supla_int_t Dur
 			if ( channel_pin[channel].pin2 != 0
 					&& channel_pin[channel].bistable == false ) {
 				suplaDigitalWrite(Params.reg_dev.channels[channel].Number, channel_pin[channel].pin2, _LO); 
-				delay(50);
+				delay(0); //delay(50) // change xbary
 			}
 			
 			if ( channel_pin[channel].pin1 != 0 ) {
@@ -972,7 +1035,7 @@ void SuplaDeviceClass::channelSetValue(int channel, char value, _supla_int_t Dur
 			
 			if ( channel_pin[channel].pin1 != 0 ) {
 				suplaDigitalWrite(Params.reg_dev.channels[channel].Number, channel_pin[channel].pin1, _LO); 
-				delay(50);
+				delay(0);//delay(50) // change xbary
 			}
 			
 			if ( channel_pin[channel].pin2 != 0  ) {
@@ -986,7 +1049,7 @@ void SuplaDeviceClass::channelSetValue(int channel, char value, _supla_int_t Dur
 			
 		if ( channel_pin[channel].bistable ) {
 			success = false;
-			delay(50);
+			delay(0);//delay(50) // change xbary
 		}
 		
 	};
@@ -1048,4 +1111,6 @@ void SuplaDeviceClass::channelSetActivityTimeoutResult(TSDC_SuplaSetActivityTime
 	server_activity_timeout = result->activity_timeout;
 }
 
+#if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_SUPLADEVICE) // add xbary
 SuplaDeviceClass SuplaDevice;
+#endif // add xbary

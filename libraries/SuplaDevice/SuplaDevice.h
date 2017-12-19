@@ -19,6 +19,7 @@
 
 #include "proto.h"
 #include <IPAddress.h>
+#include <xb_util.h> // Xbary add (FSS macro...)
 
 #define ACTIVITY_TIMEOUT 30
 
@@ -54,6 +55,7 @@ typedef void (*_cb_arduino_set_rgbw_value)(int channelNumber, unsigned char red,
 typedef double (*_cb_arduino_get_distance)(int channelNumber, double distance);
 typedef int (*_impl_arduino_digitalRead)(int channelNumber, uint8_t pin);
 typedef void (*_impl_arduino_digitalWrite)(int channelNumber, uint8_t pin, uint8_t val);
+typedef void(*_impl_arduino_pinMode)(int channelNumber, uint8_t pin, uint8_t mode); // add xbary
 typedef void (*_impl_arduino_status)(int status, const char *msg);
 
 typedef struct SuplaDeviceCallbacks {
@@ -111,12 +113,15 @@ class SuplaDeviceClass
 {
 protected:
 	void *srpc;
+
+	uint8_t serverconnectedcount; // add xbary
+	uint8_t IterateChannelIndex; // add xbary
+
 	char registered;
-	bool isInitialized(bool msg);
+//	bool isInitialized(bool msg);
 	void setString(char *dst, const char *src, int max_size);
 	int addChannel(int pin1, int pin2, bool hiIsLo, bool bistable);
 	void channelValueChanged(int channel_number, char v, double d, char var);
-	void channelSetValue(int channel, char value, _supla_int_t DurationMS);
 	void channelSetDoubleValue(int channelNum, double value);
 	void setDoubleValue(char value[SUPLA_CHANNELVALUE_SIZE], double v);
 	bool addDHT(int Type);
@@ -141,12 +146,13 @@ protected:
     
 	_impl_arduino_digitalRead impl_arduino_digitalRead;
 	_impl_arduino_digitalWrite impl_arduino_digitalWrite;
+	_impl_arduino_pinMode impl_arduino_pinMode; // add xbary
     _impl_arduino_status impl_arduino_status;
-
     
 private:
 	int suplaDigitalRead(int channelNumber, uint8_t pin);
 	void suplaDigitalWrite(int channelNumber, uint8_t pin, uint8_t val);
+	void suplapinMode(int channelNumber, uint8_t pin, uint8_t mode); // add xbary
     void status(int status, const char *msg);
 public:
    SuplaDeviceClass();
@@ -161,6 +167,8 @@ public:
    bool begin(char GUID[SUPLA_GUID_SIZE], uint8_t mac[6], const char *Server,
 		      int LocationID, const char *LocationPWD);
    
+   bool isInitialized(bool msg=false); // add xbary
+
    void setName(const char *Name);
    
    bool addRelay(int relayPin1, int relayPin2, bool hiIsLo, bool bistable, _supla_int_t functions);
@@ -182,7 +190,7 @@ public:
     
    void setEepromAddress(int address);
    
-   void iterate(void);
+   bool iterate(void); // change xbary
    
    SuplaDeviceCallbacks getCallbacks(void);
    void setTemperatureCallback(_cb_arduino_get_temperature get_temperature);
@@ -192,6 +200,7 @@ public:
    
    void setDigitalReadFuncImpl(_impl_arduino_digitalRead impl_arduino_digitalRead);
    void setDigitalWriteFuncImpl(_impl_arduino_digitalWrite impl_arduino_digitalWrite);
+   void setpinModeFuncImpl(_impl_arduino_pinMode impl_arduino_pinMode); // add xbary
    void setStatusFuncImpl(_impl_arduino_status impl_arduino_status);
     
    void onResponse(void);
@@ -199,11 +208,14 @@ public:
    void onRegisterResult(TSD_SuplaRegisterDeviceResult *register_device_result);
    void onSensorInterrupt(void);
    void channelSetValue(TSD_SuplaChannelNewValue *new_value);
+   void channelSetValue(int channel, char value, _supla_int_t DurationMS);
    void channelSetActivityTimeoutResult(TSDC_SuplaSetActivityTimeoutResult *result);
 };
 
-#include "supla_main_helper._cpp_"			
+//#include "supla_main_helper._cpp_" // change xbary
 			
+#if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_SUPLADEVICE) // add xbary
 extern SuplaDeviceClass SuplaDevice;
+#endif // add xbary
 extern SuplaDeviceCallbacks supla_arduino_get_callbacks(void);
 #endif

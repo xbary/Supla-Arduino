@@ -26,7 +26,8 @@
 
 #ifdef ESP8266
   #include <os_type.h>
-  #define SRPC_ICACHE_FLASH ICACHE_FLASH_ATTR
+  #define SRPC_ICACHE_FLASH 
+//  #define SRPC_ICACHE_FLASH ICACHE_FLASH_ATTR
 #else 
   #define SRPC_ICACHE_FLASH 
 #endif

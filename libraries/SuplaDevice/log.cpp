@@ -26,6 +26,9 @@
 	#include <wchar.h>
 #elif defined(ARDUINO_ARCH_ESP8266) || defined(__AVR__)
     #include <Arduino.h>
+#if defined(TELNET_SUPPORT)
+	#include <telnetspy.h>
+#endif
 #else
 	#include <unistd.h>
 	#include <sys/time.h>
@@ -47,7 +50,8 @@
         #include <mem.h>	
 
 		#include <user_interface.h>
-		#include "espmissingincludes.h"
+//		#include "espmissingincludes.h"
+
 
 #else
 

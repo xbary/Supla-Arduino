@@ -19,7 +19,7 @@
 #ifndef supla_proto_H_
 #define supla_proto_H_
 
-#ifdef _WIN32
+#ifdef _WIN32_ // add xbary '_'
 
 	#include <WinSock2.h>
 	#define _supla_int_t int
