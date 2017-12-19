@@ -226,7 +226,7 @@ bool SuplaDeviceClass::isInitialized(bool msg) {
 bool SuplaDeviceClass::chceckEepromSize() {
     
     if ( sizeof(SuplaDevicePrefs) > EEPROM.length()-eeprom_address ) {
-        supla_log(LOG_ERR, FSS("\nEEPROM size too small!\n"));
+        supla_log(LOG_ERR, FSS("\nEEPROM size too small!"));
         return false;
     };
     
