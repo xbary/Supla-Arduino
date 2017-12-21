@@ -103,11 +103,15 @@ typedef struct SuplaChannelPin {
 	};
 };
 
-typedef struct SuplaDeviceMemPrefs {
+typedef struct SuplaDevicePrefs {
     
     byte tag[6];
     
-}SuplaDevicePrefs;
+};
+
+typedef struct SuplaDeviceRollerShutter {
+	int channel_idx;
+};
 
 class SuplaDeviceClass
 {
@@ -137,6 +141,9 @@ protected:
 	_supla_int_t server_activity_timeout, last_response;
 	SuplaChannelPin *channel_pin;
 
+	int rs_count;
+	SuplaDeviceRollerShutter *roller_shutter;
+
 	unsigned long last_iterate_time;
     unsigned long wait_for_iterate;
 	bool ping_flag;
@@ -148,10 +155,17 @@ protected:
 	_impl_arduino_digitalWrite impl_arduino_digitalWrite;
 	_impl_arduino_pinMode impl_arduino_pinMode; // add xbary
     _impl_arduino_status impl_arduino_status;
+
+	void iterate_relay(SuplaChannelPin *pin, TDS_SuplaDeviceChannel_B *channel, unsigned long time_diff, int channel_idx);
+	void iterate_sensor(SuplaChannelPin *pin, TDS_SuplaDeviceChannel_B *channel, unsigned long time_diff, int channel_idx);
+	void iterate_thermometer(SuplaChannelPin *pin, TDS_SuplaDeviceChannel_B *channel, unsigned long time_diff, int channel_idx);
+	void iterate_rollershutter(SuplaDeviceRollerShutter *rs, SuplaChannelPin *pin, TDS_SuplaDeviceChannel_B *channel);
     
 private:
 	int suplaDigitalRead(int channelNumber, uint8_t pin);
+	bool suplaDigitalRead_isHI(int channelNumber, uint8_t pin);
 	void suplaDigitalWrite(int channelNumber, uint8_t pin, uint8_t val);
+	void suplaDigitalWrite_setHI(int channelNumber, uint8_t pin, bool hi);
 	void suplapinMode(int channelNumber, uint8_t pin, uint8_t mode); // add xbary
     void status(int status, const char *msg);
 public:
@@ -171,7 +185,7 @@ public:
 
    void setName(const char *Name);
    
-   bool addRelay(int relayPin1, int relayPin2, bool hiIsLo, bool bistable, _supla_int_t functions);
+   int addRelay(int relayPin1, int relayPin2, bool hiIsLo, bool bistable, _supla_int_t functions);
    bool addRelay(int relayPin1, int relayPin2, bool hiIsLo);
    bool addRelay(int relayPin1, bool hiIsLo);
    bool addRelay(int relayPin1);
@@ -190,6 +204,13 @@ public:
     
    void setEepromAddress(int address);
    
+   bool relayOn(int channel_number, _supla_int_t DurationMS);
+   bool relayOff(int channel_number);
+
+   bool rollerShutterReveal(int channel_number);
+   bool rollerShutterShut(int channel_number);
+   bool rollerShutterStop(int channel_number);
+
    bool iterate(void); // change xbary
    
    SuplaDeviceCallbacks getCallbacks(void);
