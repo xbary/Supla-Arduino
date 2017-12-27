@@ -830,10 +830,6 @@ bool SuplaDeviceClass::iterate(void) {
 	unsigned long _millis = millis();
 	unsigned long time_diff = abs(_millis - last_iterate_time);
 
-	for (int a = 0; a<rs_count; a++) {
-		iterate_rollershutter(&roller_shutter[a], &channel_pin[roller_shutter[a].channel_idx], &Params.reg_dev.channels[roller_shutter[a].channel_idx]);
-	}
-
     if ( wait_for_iterate != 0
          && _millis < wait_for_iterate ) {
         return true;
@@ -900,6 +896,14 @@ bool SuplaDeviceClass::iterate(void) {
 		// add xbary
 		if (IterateChannelIndex<Params.reg_dev.channel_count) 		//for(int a=0;a<Params.reg_dev.channel_count;a++)
 		{
+			for (int a = 0; a<rs_count; a++) 
+			{
+				if (roller_shutter[a].channel_idx == IterateChannelIndex)
+				{
+					iterate_rollershutter(&roller_shutter[a], &channel_pin[roller_shutter[a].channel_idx], &Params.reg_dev.channels[roller_shutter[a].channel_idx]);
+					break;
+				}
+			}
 			iterate_relay(&channel_pin[IterateChannelIndex], &Params.reg_dev.channels[IterateChannelIndex], time_diff, IterateChannelIndex);
 			iterate_sensor(&channel_pin[IterateChannelIndex], &Params.reg_dev.channels[IterateChannelIndex], time_diff, IterateChannelIndex);
 			iterate_thermometer(&channel_pin[IterateChannelIndex], &Params.reg_dev.channels[IterateChannelIndex], time_diff, IterateChannelIndex);            		// add xbary
@@ -934,7 +938,7 @@ void SuplaDeviceClass::onResponse(void) {
 void SuplaDeviceClass::onVersionError(TSDC_SuplaVersionError *version_error) {
 	status(STATUS_PROTOCOL_VERSION_ERROR, FSS("Protocol version error"));
 	Params.cb.svr_disconnect();
-	delay(0);//delay(5000)
+	//delay(0);//delay(5000)
 }
 
 void SuplaDeviceClass::onRegisterResult(TSD_SuplaRegisterDeviceResult *register_device_result) {
@@ -1084,7 +1088,7 @@ void SuplaDeviceClass::channelSetValue(int channel, char value, _supla_int_t Dur
 			if ( channel_pin[channel].pin2 != 0
 					&& channel_pin[channel].bistable == false ) {
 				suplaDigitalWrite(Params.reg_dev.channels[channel].Number, channel_pin[channel].pin2, _LO); 
-				delay(0); //delay(50) // change xbary
+				//delay(0); //delay(50) // change xbary
 			}
 			
 			if ( channel_pin[channel].pin1 != 0 ) {
@@ -1104,7 +1108,7 @@ void SuplaDeviceClass::channelSetValue(int channel, char value, _supla_int_t Dur
 			
 			if ( channel_pin[channel].pin1 != 0 ) {
 				suplaDigitalWrite(Params.reg_dev.channels[channel].Number, channel_pin[channel].pin1, _LO); 
-				delay(0);//delay(50) // change xbary
+				//delay(0);//delay(50) // change xbary
 			}
 			
 			if ( channel_pin[channel].pin2 != 0  ) {
@@ -1118,7 +1122,7 @@ void SuplaDeviceClass::channelSetValue(int channel, char value, _supla_int_t Dur
 			
 		if ( channel_pin[channel].bistable ) {
 			success = false;
-			delay(0);//delay(50) // change xbary
+			//delay(0);//delay(50) // change xbary
 		}
 		
 	};
