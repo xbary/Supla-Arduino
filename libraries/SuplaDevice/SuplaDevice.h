@@ -113,6 +113,9 @@ typedef struct SuplaDeviceRollerShutter {
 	int channel_idx;
 };
 
+typedef enum { irOK, irNotInitialized, irNotConnect, irTimeOut, irERROR } TIterateResult;
+
+
 class SuplaDeviceClass
 {
 protected:
@@ -211,7 +214,7 @@ public:
    bool rollerShutterShut(int channel_number);
    bool rollerShutterStop(int channel_number);
 
-   bool iterate(void); // change xbary
+   TIterateResult iterate(void); // change xbary
    
    SuplaDeviceCallbacks getCallbacks(void);
    void setTemperatureCallback(_cb_arduino_get_temperature get_temperature);

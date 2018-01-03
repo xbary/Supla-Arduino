@@ -148,6 +148,8 @@ SuplaDeviceClass::~SuplaDeviceClass() {
 		roller_shutter = NULL;
 	}
 
+	srpc_free(srpc);
+	srpc = NULL;
 	rs_count = 0;
 }
 
@@ -203,6 +205,7 @@ void SuplaDeviceClass::suplapinMode(int channelNumber, uint8_t pin, uint8_t mode
 	}
 	else
 	{
+
 		pinMode(pin, mode);
 	}
 }
@@ -431,23 +434,24 @@ int SuplaDeviceClass::addRelay(int relayPin1, int relayPin2, bool hiIsLo, bool b
 	Params.reg_dev.channels[c].Type = SUPLA_CHANNELTYPE_RELAY;
 	Params.reg_dev.channels[c].FuncList = functions;
 	
-	if ( relayPin1 != 0 ) {
+	if ( relayPin1 != 0 ) 
+	{
 		suplapinMode(Params.reg_dev.channels[c].Number, relayPin1, OUTPUT); // change xbary
-		suplaDigitalWrite(Params.reg_dev.channels[c].Number, relayPin1, hiIsLo ? HIGH : LOW); 
+		//suplaDigitalWrite(Params.reg_dev.channels[c].Number, relayPin1, hiIsLo ? HIGH : LOW); 
 		
 		if ( bistable == false )
 			Params.reg_dev.channels[c].value[0] = suplaDigitalRead(Params.reg_dev.channels[c].Number, relayPin1) == _HI ? 1 : 0;
 	}
 
 	if ( relayPin2 != 0 )
-	  if ( bistable ) {
-		  
-                  suplapinMode(Params.reg_dev.channels[c].Number, relayPin2, INPUT); // change xbary
+	  if ( bistable ) 
+	  {
+          suplapinMode(Params.reg_dev.channels[c].Number, relayPin2, INPUT); // change xbary
 		  Params.reg_dev.channels[c].value[0] = suplaDigitalRead(Params.reg_dev.channels[c].Number, relayPin2) == HIGH ? 1 : 0;
 		  
 	  } else {
 		  suplapinMode(Params.reg_dev.channels[c].Number, relayPin2, OUTPUT); // change xbary
-		  suplaDigitalWrite(Params.reg_dev.channels[c].Number, relayPin2, hiIsLo ? HIGH : LOW); 
+		  //suplaDigitalWrite(Params.reg_dev.channels[c].Number, relayPin2, hiIsLo ? HIGH : LOW); 
 			
 		  if ( Params.reg_dev.channels[c].value[0] == 0
 				&& suplaDigitalRead(Params.reg_dev.channels[c].Number, relayPin2) == _HI )
@@ -823,8 +827,7 @@ void SuplaDeviceClass::iterate_rollershutter(SuplaDeviceRollerShutter *rs, Supla
 
 }
 
-
-bool SuplaDeviceClass::iterate(void) {
+TIterateResult SuplaDeviceClass::iterate(void) {
 
 	//int a;
 	unsigned long _millis = millis();
@@ -832,13 +835,13 @@ bool SuplaDeviceClass::iterate(void) {
 
     if ( wait_for_iterate != 0
          && _millis < wait_for_iterate ) {
-        return true;
+        return irOK;
         
     } else {
         wait_for_iterate = 0;
     }
     
-	if ( !isInitialized(false) ) return false;
+	if ( !isInitialized(false) ) return irNotInitialized;
 	
 	if ( !Params.cb.svr_connected() ) {
 
@@ -847,7 +850,7 @@ bool SuplaDeviceClass::iterate(void) {
 		{
 			status(STATUS_DISCONNECTED, FSS("\nSupla not connected.\n"));
 			serverconnectedcount++;
-			return false;
+			return irNotConnect;
 		}
 	    registered = 0;
 	    last_response = 0;
@@ -859,7 +862,7 @@ bool SuplaDeviceClass::iterate(void) {
 		    	Params.cb.svr_disconnect();
 
                 wait_for_iterate = millis() + 2000;
-				return false;
+				return irNotConnect;
 		}
 	}
 	// add xbary
@@ -869,21 +872,24 @@ bool SuplaDeviceClass::iterate(void) {
 	}
 
 	
-	if ( registered == 0 ) {
-		
+	if ( registered == 0 ) 
+	{
 		registered = -1;
 		srpc_ds_async_registerdevice_b(srpc, &Params.reg_dev);
 		status(STATUS_REGISTER_IN_PROGRESS, FSS("Supla register.."));
-	} else if ( registered == 1 ) {
+	} 
+	else if ( registered == 1 ) 
+	{
 		// PING
 		if ( (_millis-last_response)/1000 >= (server_activity_timeout+10)  ) {
 
 			supla_log(LOG_DEBUG, FSS("\nSupla timeout.\n"));
 			Params.cb.svr_disconnect();
-			return false; //add xbary
+			return irTimeOut; //add xbary
 
-		} else if ( ping_flag == false 
-				    && (_millis-last_response)/1000 >= (server_activity_timeout-5) ) {
+		} 
+		else if ( ping_flag == false && (_millis-last_response)/1000 >= (server_activity_timeout-5) ) 
+		{
 			ping_flag = true;
 			srpc_dcs_async_ping_server(srpc);
 		}
@@ -924,10 +930,10 @@ bool SuplaDeviceClass::iterate(void) {
 		Params.cb.svr_disconnect();
         
 		wait_for_iterate = millis() + 5000;
-        return false; // change xbary
+        return irERROR; // change xbary
 	}
 	
-	return true; // add xbary
+	return irOK; // add xbary
 }
 
 void SuplaDeviceClass::onResponse(void) {
@@ -1054,18 +1060,23 @@ void SuplaDeviceClass::channelSetValue(int channel, char value, _supla_int_t Dur
 	uint8_t _HI = channel_pin[channel].hiIsLo ? LOW : HIGH;
 	uint8_t _LO = channel_pin[channel].hiIsLo ? HIGH : LOW;
 
-	if ( Params.reg_dev.channels[channel].Type == SUPLA_CHANNELTYPE_RELAY ) {
+	if ( Params.reg_dev.channels[channel].Type == SUPLA_CHANNELTYPE_RELAY ) 
+	{
 		
-		if ( channel_pin[channel].bistable ) 
-		   if ( channel_pin[channel].bi_time_left > 0
-				 || suplaDigitalRead(Params.reg_dev.channels[channel].Number, channel_pin[channel].pin2)  == value ) {
-			   value = -1;
-		   } else {
-			   value = 1;
-			   channel_pin[channel].bi_time_left = 500;
-		   }
-		
-		if ( value == 0 ) {
+		if (channel_pin[channel].bistable)
+		{
+			if (channel_pin[channel].bi_time_left > 0
+				|| suplaDigitalRead(Params.reg_dev.channels[channel].Number, channel_pin[channel].pin2) == value) {
+				value = -1;
+			}
+			else {
+				value = 1;
+				channel_pin[channel].bi_time_left = 500;
+			}
+		}
+
+		if ( value == 0 ) 
+		{
 			
 			if ( channel_pin[channel].pin1 != 0 ) {
 				suplaDigitalWrite(Params.reg_dev.channels[channel].Number, channel_pin[channel].pin1, _LO); 
@@ -1083,7 +1094,9 @@ void SuplaDeviceClass::channelSetValue(int channel, char value, _supla_int_t Dur
 			}
 				
 			
-		} else if ( value == 1 ) {
+		} 
+		else if ( value == 1 ) 
+		{
 			
 			if ( channel_pin[channel].pin2 != 0
 					&& channel_pin[channel].bistable == false ) {
@@ -1103,8 +1116,9 @@ void SuplaDeviceClass::channelSetValue(int channel, char value, _supla_int_t Dur
 				
 			
 			
-		} else if ( value == 2 
-				    && channel_pin[channel].bistable == false ) {
+		} 
+		else if ( value == 2 && channel_pin[channel].bistable == false ) 
+		{
 			
 			if ( channel_pin[channel].pin1 != 0 ) {
 				suplaDigitalWrite(Params.reg_dev.channels[channel].Number, channel_pin[channel].pin1, _LO); 
