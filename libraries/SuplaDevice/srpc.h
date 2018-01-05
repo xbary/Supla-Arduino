@@ -109,6 +109,8 @@ void SRPC_ICACHE_FLASH srpc_params_init(TsrpcParams *params);
 void* SRPC_ICACHE_FLASH srpc_init(TsrpcParams *params);
 void SRPC_ICACHE_FLASH srpc_free(void *_srpc);
 
+int SRPC_ICACHE_FLASH srpc_get_out_queue_size(void *_srpc);
+int SRPC_ICACHE_FLASH srpc_get_in_queue_size(void *_srpc);
 char SRPC_ICACHE_FLASH srpc_iterate(void *_srpc);
 
 char SRPC_ICACHE_FLASH srpc_getdata(void *_srpc, TsrpcReceivedData *rd, unsigned _supla_int_t rr_id);

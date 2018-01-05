@@ -129,7 +129,7 @@ SuplaDeviceClass::SuplaDeviceClass() {
 	for(a=0;a<6;a++)
 		Params.mac[a] = a;
 	
-	Params.cb = supla_arduino_get_callbacks();
+	Params.cb = supla_arduino_get_callbacks(this);
 }
 
 SuplaDeviceClass::~SuplaDeviceClass() {
@@ -894,34 +894,39 @@ TIterateResult SuplaDeviceClass::iterate(void) {
 			srpc_dcs_async_ping_server(srpc);
 		}
 	}
-	
-	if ( last_iterate_time != 0 ) {
-		
-		unsigned long td = abs(_millis - last_iterate_time);
-		
-		// add xbary
-		if (IterateChannelIndex<Params.reg_dev.channel_count) 		//for(int a=0;a<Params.reg_dev.channel_count;a++)
+
+	if (srpc_get_out_queue_size(srpc) == 0)
+	{
+
+		if (last_iterate_time != 0)
 		{
-			for (int a = 0; a<rs_count; a++) 
+
+			unsigned long td = abs(_millis - last_iterate_time);
+
+			// add xbary
+			if (IterateChannelIndex < Params.reg_dev.channel_count) 		//for(int a=0;a<Params.reg_dev.channel_count;a++)
 			{
-				if (roller_shutter[a].channel_idx == IterateChannelIndex)
+				for (int a = 0; a < rs_count; a++)
 				{
-					iterate_rollershutter(&roller_shutter[a], &channel_pin[roller_shutter[a].channel_idx], &Params.reg_dev.channels[roller_shutter[a].channel_idx]);
-					break;
+					if (roller_shutter[a].channel_idx == IterateChannelIndex)
+					{
+						iterate_rollershutter(&roller_shutter[a], &channel_pin[roller_shutter[a].channel_idx], &Params.reg_dev.channels[roller_shutter[a].channel_idx]);
+						break;
+					}
 				}
+				iterate_relay(&channel_pin[IterateChannelIndex], &Params.reg_dev.channels[IterateChannelIndex], time_diff, IterateChannelIndex);
+				iterate_sensor(&channel_pin[IterateChannelIndex], &Params.reg_dev.channels[IterateChannelIndex], time_diff, IterateChannelIndex);
+				iterate_thermometer(&channel_pin[IterateChannelIndex], &Params.reg_dev.channels[IterateChannelIndex], time_diff, IterateChannelIndex);            		// add xbary
+				IterateChannelIndex++;
 			}
-			iterate_relay(&channel_pin[IterateChannelIndex], &Params.reg_dev.channels[IterateChannelIndex], time_diff, IterateChannelIndex);
-			iterate_sensor(&channel_pin[IterateChannelIndex], &Params.reg_dev.channels[IterateChannelIndex], time_diff, IterateChannelIndex);
-			iterate_thermometer(&channel_pin[IterateChannelIndex], &Params.reg_dev.channels[IterateChannelIndex], time_diff, IterateChannelIndex);            		// add xbary
-			IterateChannelIndex++;
-		}
-		else
-		{
-			IterateChannelIndex = 0;
+			else
+			{
+				IterateChannelIndex = 0;
+			}
+
 		}
 
 	}
-
 	
 	last_iterate_time = millis();
 	

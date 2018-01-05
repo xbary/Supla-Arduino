@@ -241,5 +241,5 @@ public:
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_SUPLADEVICE) // add xbary
 extern SuplaDeviceClass SuplaDevice;
 #endif // add xbary
-extern SuplaDeviceCallbacks supla_arduino_get_callbacks(void);
+extern SuplaDeviceCallbacks supla_arduino_get_callbacks(SuplaDeviceClass *SuplaDevice);
 #endif

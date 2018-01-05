@@ -211,6 +211,30 @@ char SRPC_ICACHE_FLASH srpc_out_queue_pop(Tsrpc *srpc, TSuplaDataPacket *sdp, un
 	return srpc_queue_pop(&srpc->out_queue, &srpc->out_queue_size, sdp, rr_id);
 }
 
+
+int SRPC_ICACHE_FLASH srpc_get_out_queue_size(void *_srpc)
+{
+	Tsrpc *srpc = (Tsrpc*)_srpc;
+	if (srpc != NULL)
+	{
+		return srpc->out_queue_size;
+	}
+	else
+		return -1;
+}
+
+int SRPC_ICACHE_FLASH srpc_get_in_queue_size(void *_srpc)
+{
+	Tsrpc *srpc = (Tsrpc*)_srpc;
+	if (srpc != NULL)
+	{
+		return srpc->in_queue_size;
+	}
+	else
+		return -1;
+}
+
+
 char SRPC_ICACHE_FLASH srpc_iterate(void *_srpc) {
 
 	Tsrpc *srpc = (Tsrpc*)_srpc;
