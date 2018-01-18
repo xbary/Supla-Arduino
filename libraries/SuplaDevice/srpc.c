@@ -33,7 +33,7 @@
 	#include <mem.h>
 	
 	#define srpc_BUFFER_SIZE      1024
-	#define srpc_QUEUE_MAX_SIZE   3
+	#define srpc_QUEUE_MAX_SIZE   2
 
 	#include <user_interface.h>
 //	#include "espmissingincludes.h"

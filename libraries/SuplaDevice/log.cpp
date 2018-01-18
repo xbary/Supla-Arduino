@@ -27,7 +27,7 @@
 #elif defined(ARDUINO_ARCH_ESP8266) || defined(__AVR__)
     #include <Arduino.h>
 #if defined(TELNET_SUPPORT)
-	#include <telnetspy.h>
+	//#include <telnetspy.h>
 #endif
 #else
 	#include <unistd.h>

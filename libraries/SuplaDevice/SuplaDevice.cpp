@@ -250,10 +250,10 @@ bool SuplaDeviceClass::isInitialized(bool msg) {
 
 bool SuplaDeviceClass::chceckEepromSize() {
     
-    if ( sizeof(SuplaDevicePrefs) > EEPROM.length()-eeprom_address ) {
-        supla_log(LOG_ERR, FSS("\nEEPROM size too small!"));
+//    if ( sizeof(SuplaDevicePrefs) > EEPROM.length()-eeprom_address ) {
+//        supla_log(LOG_ERR, FSS("\nEEPROM size too small!"));
         return false;
-    };
+//    };
     
     return true;
 }
@@ -846,12 +846,13 @@ TIterateResult SuplaDeviceClass::iterate(void) {
 	if ( !Params.cb.svr_connected() ) {
 
 		// add xbary
-		if (serverconnectedcount == 0 ) 
+		if (serverconnectedcount > 0 ) 
 		{
-			status(STATUS_DISCONNECTED, FSS("\nSupla not connected.\n"));
-			serverconnectedcount++;
-			return irNotConnect;
+			status(STATUS_DISCONNECTED, FSS("Supla not connected.\n"));
+			//return irNotConnect;
 		}
+		serverconnectedcount++;
+
 	    registered = 0;
 	    last_response = 0;
 	    ping_flag = false;
